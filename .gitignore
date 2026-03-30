@@ -1,0 +1,9 @@
+# Ignore IDE workspace settings
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries
+.idea/assetWizardSettings.xml
+
+# Keep project-specific configs
+.idea/dataSources/
+.idea/modules.xml
