@@ -1,3 +1,8 @@
+-- Script Purpose:
+--      This script creates a new database name 'dwh_project' after checking if it already exists.
+--      If things already exist, don't break. If they don't exist, create them
+
+
 -- 1. Enable the dblink extension
 -- This allows us to execute a command on the server from a separate 'connection'
 CREATE EXTENSION IF NOT EXISTS dblink;
