@@ -29,4 +29,4 @@ END
 $$;
 
 -- 4. Permissions: The Handover
-GRANT ALL PRIVILEGES ON DATABASE dwh_project TO dwh_admin;
+GRANT ALL PRIVILEGES ON DATABASE dwh_project TO wh_admin;d

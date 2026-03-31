@@ -7,3 +7,10 @@
 # Keep project-specific configs
 .idea/dataSources/
 .idea/modules.xml
+
+# Ignore actual data files
+datasets/**/*.csv
+datasets/**/*.json
+
+# But keep the folder structure
+!.gitkeep
