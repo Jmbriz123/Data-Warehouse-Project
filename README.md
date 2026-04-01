@@ -1,4 +1,4 @@
-# 🛢️ GasLite Data Warehouse (PostgreSQL)
+# 🛢️Data Warehouse and Analytics Project (PostgreSQL)
 
 A structured Data Warehouse built in **PostgreSQL**, following the **Medallion Architecture**. This project focuses on the **ELT** (Extract, Load, Transform) pattern, where raw data is ingested into a Bronze layer and processed entirely via SQL.
 
