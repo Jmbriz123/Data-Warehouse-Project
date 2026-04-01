@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS bronze.crm_cust_info(
 );
 
 
-CREATE TABLE IF NOT EXISTS bronze.prd_info(
+CREATE TABLE IF NOT EXISTS bronze.crm_prd_info(
     prd_id INTEGER,
     prd_key VARCHAR(50),
     prd_nm VARCHAR(50),
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS bronze.prd_info(
 );
 
 
-CREATE TABLE IF NOT EXISTS bronze.sales_details(
+CREATE TABLE IF NOT EXISTS bronze.crm_sales_details(
     sls_ord_num VARCHAR(50),
     sls_prd_key VARCHAR(50),
     sls_cust_id INTEGER,
