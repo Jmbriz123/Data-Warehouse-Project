@@ -1,3 +1,9 @@
+-- Drop first to ensure the schema matches the code perfectly
+DROP TABLE IF EXISTS bronze.erp_cust_az12 CASCADE;
+DROP TABLE IF EXISTS bronze.erp_loc_a101 CASCADE;
+DROP TABLE IF EXISTS bronze.erp_px_cat_g1v2 CASCADE;
+
+
 CREATE TABLE IF NOT EXISTS bronze.erp_CUST_AZ12(
     CID VARCHAR(50),
     BDATE DATE,

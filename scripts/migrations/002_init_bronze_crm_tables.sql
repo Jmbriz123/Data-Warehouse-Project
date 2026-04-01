@@ -1,3 +1,9 @@
+DROP TABLE IF EXISTS bronze.crm_cust_info CASCADE;
+DROP TABLE IF EXISTS bronze.crm_prd_info CASCADE;
+DROP TABLE IF EXISTS bronze.crm_sales_details CASCADE;
+
+
+
 CREATE TABLE IF NOT EXISTS bronze.crm_cust_info(
     cst_id INTEGER,
     cst_key VARCHAR(50),
