@@ -19,8 +19,16 @@ CALL bronze.load_crm_data(
     p_source_dir => '/home/jemarco/repos/Data-Warehouse/datasets/source_crm'
 );
 
+CALL bronze.load_erp_data(
+    p_source_dir => '/home/jemarco/repos/Data-Warehouse/datasets/source_erp'
+     );
+
 --validate
 
 SELECT * FROM bronze.crm_cust_info;
 SELECT * FROM bronze.crm_prd_info;
 SELECT * FROM bronze.crm_sales_details;
+
+SELECT * FROM bronze.erp_cust_az12;
+SELECT * FROM bronze.erp_loc_a101;
+SELECT * FROM bronze.erp_px_cat_g1v2;
