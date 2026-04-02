@@ -11,7 +11,10 @@ CREATE TABLE IF NOT EXISTS bronze.crm_cust_info(
     cst_lastname TEXT,
     cst_marital_status TEXT,
     cst_gndr TEXT,
-    cst_create_date DATE
+    cst_create_date DATE,
+
+    -- Audit metadata (not from source CSV, added by pipeline)
+    _loaded_at          TIMESTAMP
 );
 
 
@@ -22,7 +25,10 @@ CREATE TABLE IF NOT EXISTS bronze.crm_prd_info(
     prd_cost INTEGER,
     prd_line TEXT,
     prd_start_dt DATE,
-    prd_end_dt DATE
+    prd_end_dt DATE,
+
+    -- Audit metadata (not from source CSV, added by pipeline)
+    _loaded_at          TIMESTAMP
 );
 
 
@@ -35,5 +41,8 @@ CREATE TABLE IF NOT EXISTS bronze.crm_sales_details(
     sls_due_dt  INTEGER,
     sls_sales INTEGER,
     sls_quantity INTEGER,
-    sls_price INTEGER
+    sls_price INTEGER,
+
+    -- Audit metadata (not from source CSV, added by pipeline)
+    _loaded_at          TIMESTAMP
 );
