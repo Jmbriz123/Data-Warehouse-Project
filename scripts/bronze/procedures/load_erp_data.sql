@@ -1,12 +1,12 @@
 -- =============================================================================
--- Procedure : bronze.load_crm_data
+-- Procedure : bronze.load_erp_data
 -- Layer     : Bronze
--- Source    : datasets/source_crm/
--- Purpose   : Truncate and reload all raw CRM source tables into bronze layer
+-- Source    : datasets/source_erp/
+-- Purpose   : Truncate and reload all raw ERP source tables into bronze layer
 -- Run       : Manually or via scheduler after source CSV refresh
 -- =============================================================================
 
-CREATE OR REPLACE PROCEDURE bronze.load_crm_data(
+CREATE OR REPLACE PROCEDURE bronze.load_erp_data(
     p_source_dir VARCHAR DEFAULT '/home/jemarco/repos/Data-Warehouse/datasets/source_erp'
 )
 LANGUAGE plpgsql
