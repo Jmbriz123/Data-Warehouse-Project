@@ -13,6 +13,7 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
     v_start_time  TIMESTAMP := NOW();
+    v_table_start TIMESTAMP;
     v_rows        INT       := 0;
 BEGIN
 
@@ -23,6 +24,7 @@ BEGIN
     -- -------------------------------------------------------------------------
     -- 1. crm_cust_info
     -- -------------------------------------------------------------------------
+    v_table_start := NOW();
     RAISE NOTICE '>> [1/3] Truncating bronze.crm_cust_info...';
     TRUNCATE TABLE bronze.crm_cust_info;
 
@@ -36,14 +38,14 @@ BEGIN
     );
 
     GET DIAGNOSTICS v_rows = ROW_COUNT;
-    RAISE NOTICE '>> [1/3] Loaded % rows into bronze.crm_cust_info', v_rows;
-
-    -- Stamp when this row was loaded (audit metadata)
     UPDATE bronze.crm_cust_info SET _loaded_at = NOW();
+    RAISE NOTICE '>> [1/3] Loaded % rows into bronze.crm_cust_info | Duration: % seconds',
+        v_rows, EXTRACT(EPOCH FROM (NOW() - v_table_start))::INT;
 
     -- -------------------------------------------------------------------------
     -- 2. crm_prd_info
     -- -------------------------------------------------------------------------
+    v_table_start := NOW();
     RAISE NOTICE '>> [2/3] Truncating bronze.crm_prd_info...';
     TRUNCATE TABLE bronze.crm_prd_info;
 
@@ -57,13 +59,14 @@ BEGIN
     );
 
     GET DIAGNOSTICS v_rows = ROW_COUNT;
-    RAISE NOTICE '>> [2/3] Loaded % rows into bronze.crm_prd_info', v_rows;
-
     UPDATE bronze.crm_prd_info SET _loaded_at = NOW();
+    RAISE NOTICE '>> [2/3] Loaded % rows into bronze.crm_prd_info | Duration: % seconds',
+        v_rows, EXTRACT(EPOCH FROM (NOW() - v_table_start))::INT;
 
     -- -------------------------------------------------------------------------
     -- 3. crm_sales_details
     -- -------------------------------------------------------------------------
+    v_table_start := NOW();
     RAISE NOTICE '>> [3/3] Truncating bronze.crm_sales_details...';
     TRUNCATE TABLE bronze.crm_sales_details;
 
@@ -77,16 +80,16 @@ BEGIN
     );
 
     GET DIAGNOSTICS v_rows = ROW_COUNT;
-    RAISE NOTICE '>> [3/3] Loaded % rows into bronze.crm_sales_details', v_rows;
-
     UPDATE bronze.crm_sales_details SET _loaded_at = NOW();
+    RAISE NOTICE '>> [3/3] Loaded % rows into bronze.crm_sales_details | Duration: % seconds',
+        v_rows, EXTRACT(EPOCH FROM (NOW() - v_table_start))::INT;
 
     -- -------------------------------------------------------------------------
     -- Done
     -- -------------------------------------------------------------------------
     RAISE NOTICE '==============================================';
     RAISE NOTICE '>> CRM Bronze Load Completed.';
-    RAISE NOTICE '>> Duration: % seconds',
+    RAISE NOTICE '>> Total Duration: % seconds',
         EXTRACT(EPOCH FROM (NOW() - v_start_time))::INT;
     RAISE NOTICE '==============================================';
 

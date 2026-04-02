@@ -13,16 +13,18 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
     v_start_time  TIMESTAMP := NOW();
+    v_table_start TIMESTAMP;
     v_rows        INT       := 0;
 BEGIN
 
     RAISE NOTICE '==============================================';
-    RAISE NOTICE '>> Starting CRM Bronze Load: %', v_start_time;
+    RAISE NOTICE '>> Starting ERP Bronze Load: %', v_start_time;
     RAISE NOTICE '==============================================';
 
     -- -------------------------------------------------------------------------
     -- 1. erp_cust_az12
     -- -------------------------------------------------------------------------
+    v_table_start := NOW();
     RAISE NOTICE '>> [1/3] Truncating bronze.erp_cust_az12...';
     TRUNCATE TABLE bronze.erp_cust_az12;
 
@@ -33,16 +35,15 @@ BEGIN
          FROM %L WITH (FORMAT CSV, HEADER TRUE)',
         p_source_dir || '/cust_az12.csv');
 
-    --get diagnostic data from recent executed SQL code
     GET DIAGNOSTICS v_rows = ROW_COUNT;
-    RAISE NOTICE '>> [1/3] Loaded % rows into bronze.cust_az12', v_rows;
-
-    -- Stamp when this row was loaded (audit metadata)
     UPDATE bronze.erp_cust_az12 SET _loaded_at = NOW();
+    RAISE NOTICE '>> [1/3] Loaded % rows into bronze.erp_cust_az12 | Duration: % seconds',
+        v_rows, EXTRACT(EPOCH FROM (NOW() - v_table_start))::INT;
 
     -- -------------------------------------------------------------------------
     -- 2. erp_loc_a101
     -- -------------------------------------------------------------------------
+    v_table_start := NOW();
     RAISE NOTICE '>> [2/3] Truncating bronze.erp_loc_a101...';
     TRUNCATE TABLE bronze.erp_loc_a101;
 
@@ -55,17 +56,18 @@ BEGIN
     );
 
     GET DIAGNOSTICS v_rows = ROW_COUNT;
-    RAISE NOTICE '>> [2/3] Loaded % rows into bronze.erp_loc_a101', v_rows;
-
     UPDATE bronze.erp_loc_a101 SET _loaded_at = NOW();
+    RAISE NOTICE '>> [2/3] Loaded % rows into bronze.erp_loc_a101 | Duration: % seconds',
+        v_rows, EXTRACT(EPOCH FROM (NOW() - v_table_start))::INT;
 
     -- -------------------------------------------------------------------------
     -- 3. erp_px_cat_g1v2
     -- -------------------------------------------------------------------------
-    RAISE NOTICE '>> [3/3] Truncating bronze.erp_px_cat_g1v2..';
+    v_table_start := NOW();
+    RAISE NOTICE '>> [3/3] Truncating bronze.erp_px_cat_g1v2...';
     TRUNCATE TABLE bronze.erp_px_cat_g1v2;
 
-    RAISE NOTICE '>> [3/3] Loading bronze.erp_px_cat_g1v2..';
+    RAISE NOTICE '>> [3/3] Loading bronze.erp_px_cat_g1v2...';
     EXECUTE format(
         'COPY bronze.erp_px_cat_g1v2
             (id, cat, subcat, maintenance)
@@ -74,22 +76,22 @@ BEGIN
     );
 
     GET DIAGNOSTICS v_rows = ROW_COUNT;
-    RAISE NOTICE '>> [3/3] Loaded % rows into bronze.erp_px_cat_g1v2', v_rows;
-
     UPDATE bronze.erp_px_cat_g1v2 SET _loaded_at = NOW();
+    RAISE NOTICE '>> [3/3] Loaded % rows into bronze.erp_px_cat_g1v2 | Duration: % seconds',
+        v_rows, EXTRACT(EPOCH FROM (NOW() - v_table_start))::INT;
 
     -- -------------------------------------------------------------------------
     -- Done
     -- -------------------------------------------------------------------------
     RAISE NOTICE '==============================================';
     RAISE NOTICE '>> ERP Bronze Load Completed.';
-    RAISE NOTICE '>> Duration: % seconds',
+    RAISE NOTICE '>> Total Duration: % seconds',
         EXTRACT(EPOCH FROM (NOW() - v_start_time))::INT;
     RAISE NOTICE '==============================================';
 
 EXCEPTION
     WHEN OTHERS THEN
-        RAISE NOTICE '!! ERROR during CRM Bronze Load.';
+        RAISE NOTICE '!! ERROR during ERP Bronze Load.';
         RAISE NOTICE '!! SQLERRM : %', SQLERRM;
         RAISE NOTICE '!! SQLSTATE: %', SQLSTATE;
         RAISE EXCEPTION 'bronze.load_erp_data failed — %', SQLERRM;
