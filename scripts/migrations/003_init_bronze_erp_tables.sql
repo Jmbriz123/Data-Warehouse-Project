@@ -4,29 +4,29 @@ DROP TABLE IF EXISTS bronze.erp_loc_a101 CASCADE;
 DROP TABLE IF EXISTS bronze.erp_px_cat_g1v2 CASCADE;
 
 
-CREATE TABLE IF NOT EXISTS bronze.erp_CUST_AZ12(
-    CID TEXT,
-    BDATE DATE,
-    GEN TEXT,
+CREATE TABLE IF NOT EXISTS bronze.erp_cust_az12(
+    cid TEXT,
+    bdate DATE,
+    gen TEXT,
 
     -- Audit metadata (not from source CSV, added by pipeline)
     _loaded_at          TIMESTAMP
 );
 
 
-CREATE TABLE IF NOT EXISTS bronze.erp_LOC_A101(
-    CID TEXT,
-    CNTRY TEXT,
+CREATE TABLE IF NOT EXISTS bronze.erp_loc_a101(
+    cid TEXT,
+    cntry TEXT,
 
     -- Audit metadata (not from source CSV, added by pipeline)
     _loaded_at          TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS bronze.erp_PX_CAT_G1V2(
-    ID TEXT,
-    CAT TEXT,
-    SUBCAT TEXT,
-    MAINTENANCE TEXT,
+CREATE TABLE IF NOT EXISTS bronze.erp_px_cat_g1v2(
+    id TEXT,
+    cat TEXT,
+    subcat TEXT,
+    maintenance TEXT,
 
     -- Audit metadata (not from source CSV, added by pipeline)
     _loaded_at          TIMESTAMP
