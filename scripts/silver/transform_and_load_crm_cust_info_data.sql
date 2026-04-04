@@ -1,5 +1,13 @@
-
-
+--load transformed cust_info data into silver layer
+INSERT INTO silver.crm_cust_info(cst_id,
+                                 cst_key,
+                                 cst_firstname,
+                                 cst_lastname,
+                                 cst_marital_status,
+                                 cst_gndr,
+                                 cst_create_date,
+                                 _loaded_at
+                                )
 SELECT cst_id,
        cst_key,
        TRIM(cst_firstname) AS cst_firstname, --remote unwanted spaces
