@@ -1,5 +1,4 @@
 
---generate result set of data to be inserted in the silver.crm_cust_info
 
 SELECT cst_id,
        cst_key,
@@ -7,7 +6,7 @@ SELECT cst_id,
        TRIM(cst_lastname) AS cst_lastname, --remove unwanted spaces
        CASE
            WHEN UPPER(TRIM(cst_marital_status)) = 'S' THEN 'Single'
-           WHEN UPPER(TRIM(cst_gndr)) = 'M' THEN 'Married'
+           WHEN UPPER(TRIM(cst_marital_status)) = 'M' THEN 'Married'
            ELSE 'n/a'
        END AS cst_marital_status, --transform marital status into more readable and descriptive values
        CASE
@@ -15,7 +14,8 @@ SELECT cst_id,
            WHEN UPPER(TRIM(cst_gndr)) = 'M' THEN 'Male'
            ELSE 'n/a'
        END AS cst_gndr,
-       cst_create_date --no issues found, no need of transformation
+       cst_create_date, --no issues found, no need of transformation
+        NOW() AS _loaded_at
 --generate a relation of rows after deduplication
 FROM (
     SELECT *,
