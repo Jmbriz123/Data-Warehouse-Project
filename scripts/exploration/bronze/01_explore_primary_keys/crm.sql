@@ -57,3 +57,10 @@ WHERE cst_key != TRIM(cst_key)
    OR cst_lastname != TRIM(cst_lastname)
    OR cst_marital_status != TRIM(cst_marital_status)
    OR cst_gndr != TRIM(cst_gndr);
+
+-- 5. check list of values in low cardinality columns
+SELECT DISTINCT cst_gndr
+FROM bronze.crm_cust_info;
+
+SELECT DISTINCT cst_marital_status
+FROM bronze.crm_cust_info;
