@@ -1,3 +1,4 @@
+TRUNCATE TABLE silver.crm_cust_info;
 --load transformed cust_info data into silver layer
 INSERT INTO silver.crm_cust_info(cst_id,
                                  cst_key,
