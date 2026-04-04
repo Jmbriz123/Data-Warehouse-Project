@@ -21,3 +21,16 @@ SELECT
 FROM bronze.crm_cust_info
 GROUP BY cst_id
 HAVING COUNT(*) > 1 OR cst_id IS NULL;
+
+--3. identify duplicate cst_id records in bronze using row_number window function
+SELECT *
+FROM (
+    SELECT *,
+        ROW_NUMBER() OVER(
+            PARTITION BY cst_id
+            ORDER BY cst_create_date DESC, _loaded_at DESC --tie-breaker
+            ) AS version_rank
+FROM bronze.crm_cust_info) AS sub
+WHERE version_rank != 1;
+
+
