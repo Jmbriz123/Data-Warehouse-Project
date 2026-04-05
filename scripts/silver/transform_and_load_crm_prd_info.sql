@@ -1,6 +1,5 @@
 --apply data transformations
 SELECT prd_id,
-       prd_key,
        REPLACE(SUBSTRING(prd_key, 1,5), '-', '_') AS cat_id, --new derived column from prd_key. Replace - with _ for data format consistency across tables
        SUBSTRING(prd_key, 7, LENGTH(prd_key)) AS prd_key,
        prd_nm,
