@@ -57,3 +57,20 @@ SELECT COUNT(*) AS missing_order_dates
 FROM bronze.crm_sales_details
 WHERE sls_order_dt IS NULL;
 --Realization: No missing order dates
+
+-- =============================================================================
+-- DATA PROFILING: Identifying invalid integers representing dates
+-- =============================================================================
+SELECT
+    SUM((CASE WHEN LENGTH(sls_order_dt::text) != 8 THEN 1 ELSE 0 END)) AS invalid_order_dates,
+    SUM((CASE WHEN LENGTH(sls_ship_dt::text) != 8 THEN 1 ELSE 0 END)) AS invalid_ship_dates,
+    SUM((CASE WHEN LENGTH(sls_due_dt::text) != 8 THEN 1 ELSE 0 END)) AS invalid_due_dates
+FROM bronze.crm_sales_details;
+--realization: Order Dates have invalid values (digits !=8)
+
+--determine what values violated the digit property
+SELECT
+    DISTINCT  sls_order_dt
+FROM bronze.crm_sales_details
+WHERE LENGTH(sls_order_dt::text) != 8;
+--Realization: Invalid dates are the following: 0, 5489, 32154
