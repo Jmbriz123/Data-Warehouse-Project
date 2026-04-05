@@ -13,6 +13,7 @@ BEGIN;
         cst_create_date,
         _loaded_at
     )
+
     SELECT
         cst_id,
         cst_key,
@@ -38,6 +39,8 @@ BEGIN;
             ) AS version_rank
         FROM bronze.crm_cust_info
     ) AS subquery
-    WHERE version_rank = 1;
+    WHERE version_rank = 1
+    AND cst_id IS NOT NULL;
 
 COMMIT;
+
