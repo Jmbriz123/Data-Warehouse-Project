@@ -17,3 +17,43 @@ WHERE sls_cust_id NOT IN (
     );
 --realization: no issues found
 
+-- =============================================================================
+-- DATA PROFILING: Sales Date Columns
+-- Objective: Ensure date strings are convertible to DATE type in Silver.
+-- =============================================================================
+
+-- 1. Check for Logical Consistency (e.g., Is order date after ship date?)
+--Expectation: No Results
+-- Observation: If order > ship, the source system has a logic bug.
+SELECT *
+FROM bronze.crm_sales_details
+WHERE sls_order_dt > sls_ship_dt;
+--Realization: No issue found
+
+-- 2. Check for "Out of Bounds" dates (e.g., Year 0001 or 9999)
+-- =============================================================================
+-- DATA PROFILING: Identifying "Zero-Date" Anomalies
+-- =============================================================================
+
+-- 1. Quantitative Audit: How many rows are impacted?
+SELECT
+    COUNT(*) AS total_rows,
+    COUNT(CASE WHEN sls_order_dt <= 0 THEN 1 END) AS invalid_order_dates,
+    COUNT(CASE WHEN sls_ship_dt <= 0 THEN 1 END) AS invalid_ship_dates,
+    COUNT(CASE WHEN sls_due_dt <= 0 THEN 1 END) AS invalid_due_dates
+FROM bronze.crm_sales_details;
+--Realization: There are 17 invalid order dates
+-- 2. Logical Audit: Are these '0' dates associated with specific products or years?
+-- (This helps determine if the bug is from a specific source system or time period)
+SELECT
+    SUBSTRING(CAST(sls_order_dt AS TEXT), 1, 4) AS year_part,
+    COUNT(*)
+FROM bronze.crm_sales_details
+WHERE sls_order_dt <= 0
+GROUP BY 1;
+
+-- 3. Check for NULLs in mandatory business fields
+SELECT COUNT(*) AS missing_order_dates
+FROM bronze.crm_sales_details
+WHERE sls_order_dt IS NULL;
+--Realization: No missing order dates
