@@ -1,3 +1,4 @@
+INSERT INTO silver.crm_prd_info (prd_id, cat_id, prd_key, prd_nm, prd_cost, prd_line, prd_start_dt, prd_end_dt)
 --apply data transformations
 SELECT prd_id,
        REPLACE(SUBSTRING(prd_key, 1,5), '-', '_') AS cat_id, --new derived column from prd_key. Replace - with _ for data format consistency across tables
