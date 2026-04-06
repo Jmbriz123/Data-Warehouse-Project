@@ -4,7 +4,7 @@
 --expectation: no results
 SELECT *
 FROM bronze.crm_sales_details
-WHERE sls_prd_key NOT IN (
+WHERE sls_prd_key NOT IN(
     SELECT prd_key
     FROM silver.crm_prd_info
     );
@@ -74,3 +74,29 @@ SELECT
 FROM bronze.crm_sales_details
 WHERE LENGTH(sls_order_dt::text) != 8;
 --Realization: Invalid dates are the following: 0, 5489, 32154
+
+
+-- =============================================================================
+-- DATA PROFILING: Exploring sales, quantity, and price. Business Rules: SUM(sales) = quantity * price. No negative, zeros, and nulls are allowed
+-- =============================================================================
+
+SELECT DISTINCT crm_sales_details.sls_quantity
+FROM bronze.crm_sales_details
+ORDER BY sls_quantity;
+-- realization: quantities are: 1,2,3,4,5,10
+
+SELECT *
+FROM bronze.crm_sales_details
+WHERE sls_sales <=0 OR sls_sales IS NULL
+    OR sls_price <=0 OR sls_price IS NULL
+    or sls_quantity <=0 OR sls_price IS NULL;
+--realization: there are some invalid sales and price values
+
+SELECT *
+FROM bronze.crm_sales_details
+WHERE sls_sales != (ABS(sls_quantity) * ABS(sls_price)); --use absolute values just to check if the product of values after transformation (turning negatives to positive) will follow the business rule
+--realization: some violate the business rule: sales = quantity * price
+
+--Business Rules: IF sales is negative, zero, or null, derive it using quantity and price
+--                If price is zero or null, derive it using sales and quantity
+--                If price is negative, convert it to a positive value
