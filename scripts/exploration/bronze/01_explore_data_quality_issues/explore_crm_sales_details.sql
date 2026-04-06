@@ -94,7 +94,8 @@ WHERE sls_sales <=0 OR sls_sales IS NULL
 
 SELECT *
 FROM bronze.crm_sales_details
-WHERE sls_sales != (ABS(sls_quantity) * ABS(sls_price)); --use absolute values just to check if the product of values after transformation (turning negatives to positive) will follow the business rule
+WHERE sls_sales != (ABS(sls_quantity) * ABS(sls_price));
+--use absolute values just to check if the product of values after transformation (turning negatives to positive) will follow the business rule
 --realization: some violate the business rule: sales = quantity * price
 
 --Business Rules: IF sales is negative, zero, or null, derive it using quantity and price
