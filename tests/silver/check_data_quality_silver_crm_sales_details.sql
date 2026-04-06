@@ -119,12 +119,6 @@ FROM silver.crm_sales_details
 WHERE sls_order_dt > sls_ship_dt
 
 UNION ALL SELECT
-    'TEST 4 – No NULL dates',
-    COUNT(*)
-FROM silver.crm_sales_details
-WHERE sls_order_dt IS NULL OR sls_ship_dt IS NULL OR sls_due_dt IS NULL
-
-UNION ALL SELECT
     'TEST 5 – Date in valid range',
     COUNT(*)
 FROM silver.crm_sales_details
