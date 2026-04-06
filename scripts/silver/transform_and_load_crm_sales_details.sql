@@ -1,3 +1,4 @@
+BEGIN;
 TRUNCATE  TABLE silver.crm_sales_details;
 --load transformed data into silver layer
 INSERT INTO  silver.crm_sales_details (sls_ord_num,
@@ -34,6 +35,7 @@ SELECT
             THEN sls_sales/ (CASE WHEN sls_quantity= 0 THEN NULL ELSE sls_quantity END)
         ELSE sls_price END) AS sls_price
 FROM bronze.crm_sales_details;
+COMMIT;
 --Business Rules: IF sales is negative, zero, or null, derive it using quantity and price
 --                If price is zero or null, derive it using sales and quantity
 --                If price is negative, convert it to a positive value

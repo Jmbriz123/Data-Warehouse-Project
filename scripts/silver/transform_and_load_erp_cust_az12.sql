@@ -1,4 +1,5 @@
 --apply data transformation and load to silver layer
+BEGIN;
 TRUNCATE TABLE silver.erp_cust_az12;
 INSERT INTO silver.erp_cust_az12 (cid, bdate, gen)
 SELECT
@@ -13,3 +14,4 @@ SELECT
         WHEN UPPER(TRIM(gen)) IN ('M', 'MALE') THEN 'Male'
         ELSE 'n/a' END) AS gen
 FROM bronze.erp_cust_az12;
+COMMIT;
