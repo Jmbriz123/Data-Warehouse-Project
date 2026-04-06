@@ -101,3 +101,11 @@ WHERE sls_sales != (ABS(sls_quantity) * ABS(sls_price));
 --Business Rules: IF sales is negative, zero, or null, derive it using quantity and price
 --                If price is zero or null, derive it using sales and quantity
 --                If price is negative, convert it to a positive value
+
+--explore null dates
+SELECT *
+FROM bronze.crm_sales_details
+WHERE sls_order_dt IS NULL
+    OR sls_ship_dt IS NULL
+    OR sls_due_dt IS NULL;
+--realization: no null dates
