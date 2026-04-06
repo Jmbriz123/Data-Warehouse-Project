@@ -1,3 +1,4 @@
+TRUNCATE  TABLE silver.crm_sales_details;
 --load transformed data into silver layer
 INSERT INTO  silver.crm_sales_details (sls_ord_num,
                                        sls_prd_key,

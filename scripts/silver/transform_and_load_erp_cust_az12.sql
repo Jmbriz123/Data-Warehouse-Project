@@ -1,4 +1,5 @@
 --apply data transformation and load to silver layer
+TRUNCATE TABLE silver.erp_cust_az12;
 INSERT INTO silver.erp_cust_az12 (cid, bdate, gen)
 SELECT
     (CASE
