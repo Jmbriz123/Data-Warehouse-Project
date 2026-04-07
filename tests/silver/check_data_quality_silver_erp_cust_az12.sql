@@ -101,40 +101,44 @@ WHERE cid IS NULL
 -- SUMMARY SCORECARD
 -- Run this last — one row per test, failing_rows must be 0 for all.
 -- =============================================================================
-SELECT 'TEST 1 – FK cid resolves to cst_key'       AS test_name,
+SELECT test_name, failing_rows,
+       (CASE WHEN failing_rows = 0  THEN '✅ PASS' ELSE '❌ FAIL' END) AS status
+FROM (
+    SELECT 'TEST 1 – FK cid resolves to cst_key'       AS test_name,
        COUNT(*) AS failing_rows
-FROM silver.erp_cust_az12
-WHERE cid NOT IN (SELECT cst_key FROM silver.crm_cust_info)
+    FROM silver.erp_cust_az12
+    WHERE cid NOT IN (SELECT cst_key FROM silver.crm_cust_info)
 
-UNION ALL SELECT 'TEST 2 – No residual NAS prefix',
-       COUNT(*)
-FROM silver.erp_cust_az12
-WHERE cid LIKE 'NAS%'
+    UNION ALL SELECT 'TEST 2 – No residual NAS prefix',
+           COUNT(*)
+    FROM silver.erp_cust_az12
+    WHERE cid LIKE 'NAS%'
 
-UNION ALL SELECT 'TEST 3 – No other unrecognized cid formats',
-       COUNT(*)
-FROM silver.erp_cust_az12
-WHERE cid NOT IN (SELECT cst_key FROM silver.crm_cust_info)
-  AND cid NOT LIKE 'NAS%'
+    UNION ALL SELECT 'TEST 3 – No other unrecognized cid formats',
+           COUNT(*)
+    FROM silver.erp_cust_az12
+    WHERE cid NOT IN (SELECT cst_key FROM silver.crm_cust_info)
+      AND cid NOT LIKE 'NAS%'
 
-UNION ALL SELECT 'TEST 4 – No future birthdates',
-       COUNT(*)
-FROM silver.erp_cust_az12
-WHERE bdate > CURRENT_DATE
+    UNION ALL SELECT 'TEST 4 – No future birthdates',
+           COUNT(*)
+    FROM silver.erp_cust_az12
+    WHERE bdate > CURRENT_DATE
 
-UNION ALL SELECT 'TEST 5 – No implausibly old birthdates',
-       COUNT(*)
-FROM silver.erp_cust_az12
-WHERE bdate < '1900-01-01'
+    UNION ALL SELECT 'TEST 5 – No implausibly old birthdates',
+           COUNT(*)
+    FROM silver.erp_cust_az12
+    WHERE bdate < '1900-01-01'
 
-UNION ALL SELECT 'TEST 6 – Gender values standardized',
-       COUNT(*)
-FROM silver.erp_cust_az12
-WHERE gen NOT IN ('Male', 'Female', 'n/a') OR gen IS NULL
+    UNION ALL SELECT 'TEST 6 – Gender values standardized',
+           COUNT(*)
+    FROM silver.erp_cust_az12
+    WHERE gen NOT IN ('Male', 'Female', 'n/a') OR gen IS NULL
 
-UNION ALL SELECT 'TEST 7 – No null or empty cid',
-       COUNT(*)
-FROM silver.erp_cust_az12
-WHERE cid IS NULL OR TRIM(cid) = ''
+    UNION ALL SELECT 'TEST 7 – No null or empty cid',
+           COUNT(*)
+    FROM silver.erp_cust_az12
+    WHERE cid IS NULL OR TRIM(cid) = ''
 
-ORDER BY test_name;
+    ORDER BY test_name
+     ) AS checks;

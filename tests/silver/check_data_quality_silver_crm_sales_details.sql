@@ -100,44 +100,48 @@ WHERE sls_sales != sls_quantity * sls_price;
 -- =============================================================================
 -- SUMMARY SCORECARD (run last — one row per test, count should be 0 for all)
 -- =============================================================================
-SELECT
-    'TEST 1 – FK product'         AS test_name,
-    COUNT(*) AS failing_rows
-FROM silver.crm_sales_details
-WHERE sls_prd_key NOT IN (SELECT prd_key FROM silver.crm_prd_info)
+SELECT test_name, failing_rows,
+      (CASE WHEN failing_rows = 0  THEN '✅ PASS' ELSE '❌ FAIL' END) AS status
+FROM (
+        SELECT
+        'TEST 1 – FK product'         AS test_name,
+        COUNT(*) AS failing_rows
+    FROM silver.crm_sales_details
+    WHERE sls_prd_key NOT IN (SELECT prd_key FROM silver.crm_prd_info)
 
-UNION ALL SELECT
-    'TEST 2 – FK customer',
-    COUNT(*)
-FROM silver.crm_sales_details
-WHERE sls_cust_id NOT IN (SELECT cst_id FROM silver.crm_cust_info)
+    UNION ALL SELECT
+        'TEST 2 – FK customer',
+        COUNT(*)
+    FROM silver.crm_sales_details
+    WHERE sls_cust_id NOT IN (SELECT cst_id FROM silver.crm_cust_info)
 
-UNION ALL SELECT
-    'TEST 3 – Order before ship date',
-    COUNT(*)
-FROM silver.crm_sales_details
-WHERE sls_order_dt > sls_ship_dt
+    UNION ALL SELECT
+        'TEST 3 – Order before ship date',
+        COUNT(*)
+    FROM silver.crm_sales_details
+    WHERE sls_order_dt > sls_ship_dt
 
-UNION ALL SELECT
-    'TEST 5 – Date in valid range',
-    COUNT(*)
-FROM silver.crm_sales_details
-WHERE sls_order_dt < '2000-01-01' OR sls_order_dt > CURRENT_DATE
-   OR sls_ship_dt  < '2000-01-01' OR sls_ship_dt  > CURRENT_DATE
-   OR sls_due_dt   < '2000-01-01' OR sls_due_dt   > CURRENT_DATE
+    UNION ALL SELECT
+        'TEST 5 – Date in valid range',
+        COUNT(*)
+    FROM silver.crm_sales_details
+    WHERE sls_order_dt < '2000-01-01' OR sls_order_dt > CURRENT_DATE
+       OR sls_ship_dt  < '2000-01-01' OR sls_ship_dt  > CURRENT_DATE
+       OR sls_due_dt   < '2000-01-01' OR sls_due_dt   > CURRENT_DATE
 
-UNION ALL SELECT
-    'TEST 6 – No invalid sales/price/qty',
-    COUNT(*)
-FROM silver.crm_sales_details
-WHERE sls_sales <= 0 OR sls_sales IS NULL
-   OR sls_price <= 0 OR sls_price IS NULL
-   OR sls_quantity <= 0 OR sls_quantity IS NULL
+    UNION ALL SELECT
+        'TEST 6 – No invalid sales/price/qty',
+        COUNT(*)
+    FROM silver.crm_sales_details
+    WHERE sls_sales <= 0 OR sls_sales IS NULL
+       OR sls_price <= 0 OR sls_price IS NULL
+       OR sls_quantity <= 0 OR sls_quantity IS NULL
 
-UNION ALL SELECT
-    'TEST 7 – Sales = qty × price',
-    COUNT(*)
-FROM silver.crm_sales_details
-WHERE sls_sales != sls_quantity * sls_price
+    UNION ALL SELECT
+        'TEST 7 – Sales = qty × price',
+        COUNT(*)
+    FROM silver.crm_sales_details
+    WHERE sls_sales != sls_quantity * sls_price
 
-ORDER BY test_name;
+    ORDER BY test_name
+     ) AS checks;

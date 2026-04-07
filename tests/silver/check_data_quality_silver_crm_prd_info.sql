@@ -105,35 +105,39 @@ WHERE prd_end_dt < prd_start_dt;
 -- Note: TEST 1 is excluded here as it is a count-based check, not row-based.
 --       Run TEST 1 separately and verify manually.
 -- =============================================================================
-SELECT 'TEST 2 – FK prd_key resolves in sales'         AS test_name,
-        COUNT(*) AS failing_rows,
-        CASE WHEN failing_rows= 0 THEN '✅ PASS' ELSE '❌ FAIL' END AS status
-FROM silver.crm_sales_details
-WHERE sls_prd_key NOT IN (SELECT prd_key FROM silver.crm_prd_info)
+SELECT
+    test_name, failing_rows,
+    ( CASE WHEN failing_rows = 0 THEN '✅ PASS' ELSE '❌ FAIL' END) AS status
+FROM (
+        SELECT 'TEST 2 – FK prd_key resolves in sales'         AS test_name,
+        COUNT(*) AS failing_rows
+    FROM silver.crm_sales_details
+    WHERE sls_prd_key NOT IN (SELECT prd_key FROM silver.crm_prd_info)
 
-UNION ALL SELECT 'TEST 3 – FK cat_id resolves in ERP categories',
-        COUNT(*)
-FROM silver.crm_prd_info
-WHERE cat_id NOT IN (SELECT id FROM bronze.erp_px_cat_g1v2)
+    UNION ALL SELECT 'TEST 3 – FK cat_id resolves in ERP categories' AS test_name,
+            COUNT(*) AS failing_rows
+    FROM silver.crm_prd_info
+    WHERE cat_id NOT IN (SELECT id FROM bronze.erp_px_cat_g1v2)
 
-UNION ALL SELECT 'TEST 4 – No whitespace in prd_nm',
-        COUNT(*)
-FROM silver.crm_prd_info
-WHERE prd_nm != TRIM(prd_nm)
+    UNION ALL SELECT 'TEST 4 – No whitespace in prd_nm' AS test_name,
+            COUNT(*) AS failing_rows
+    FROM silver.crm_prd_info
+    WHERE prd_nm != TRIM(prd_nm)
 
-UNION ALL SELECT 'TEST 5 – No whitespace in prd_line',
-        COUNT(*)
-FROM silver.crm_prd_info
-WHERE prd_line != TRIM(prd_line)
+    UNION ALL SELECT 'TEST 5 – No whitespace in prd_line' AS test_name,
+            COUNT(*) AS failing_rows
+    FROM silver.crm_prd_info
+    WHERE prd_line != TRIM(prd_line)
 
-UNION ALL SELECT 'TEST 6 – No NULL or negative prd_cost',
-        COUNT(*)
-FROM silver.crm_prd_info
-WHERE prd_cost IS NULL OR prd_cost < 0
+    UNION ALL SELECT 'TEST 6 – No NULL or negative prd_cost' AS test_name,
+            COUNT(*) AS failing_rows
+    FROM silver.crm_prd_info
+    WHERE prd_cost IS NULL OR prd_cost < 0
 
-UNION ALL SELECT 'TEST 7 – No inverted product date ranges',
-        COUNT(*)
-FROM silver.crm_prd_info
-WHERE prd_end_dt < prd_start_dt
+    UNION ALL SELECT 'TEST 7 – No inverted product date ranges' AS test_name,
+            COUNT(*) AS failing_rows
+    FROM silver.crm_prd_info
+    WHERE prd_end_dt < prd_start_dt
 
-ORDER BY test_name;
+    ORDER BY test_name
+     ) AS checks;

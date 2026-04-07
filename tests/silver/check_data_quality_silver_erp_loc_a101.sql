@@ -59,36 +59,40 @@ WHERE _loaded_at IS NULL;
 -- Scoreboard — summarized test results
 -- Expectation: failed_count = 0 for all tests
 -- =============================================================================
-SELECT
+SELECT test, failing_rows,
+    (CASE WHEN failing_rows = 0  THEN '✅ PASS' ELSE '❌ FAIL' END) AS status
+FROM (
+    SELECT
     'Test 1: Referential integrity (cid → cst_key)'   AS test,
-    COUNT(*)                                           AS failed_count
-FROM silver.erp_loc_a101
-WHERE cid NOT IN (SELECT cst_key FROM silver.crm_cust_info)
+    COUNT(*)                                           AS failing_rows
+    FROM silver.erp_loc_a101
+    WHERE cid NOT IN (SELECT cst_key FROM silver.crm_cust_info)
 
-UNION ALL
+    UNION ALL
 
-SELECT
-    'Test 2: cid format (no remaining dashes)'         AS test,
-    COUNT(*)                                           AS failed_count
-FROM silver.erp_loc_a101
-WHERE cid LIKE '%-%'
+    SELECT
+        'Test 2: cid format (no remaining dashes)'         AS test,
+        COUNT(*)                                           AS failing_rows
+    FROM silver.erp_loc_a101
+    WHERE cid LIKE '%-%'
 
-UNION ALL
+    UNION ALL
 
-SELECT
-    'Test 3: Country normalization (no NULLs/abbrevs)' AS test,
-    COUNT(*)                                           AS failed_count
-FROM silver.erp_loc_a101
-WHERE cntry IS NULL
-   OR TRIM(cntry) = ''
-   OR UPPER(cntry) IN ('US', 'USA', 'DE')
+    SELECT
+        'Test 3: Country normalization (no NULLs/abbrevs)' AS test,
+        COUNT(*)                                           AS failing_rows
+    FROM silver.erp_loc_a101
+    WHERE cntry IS NULL
+       OR TRIM(cntry) = ''
+       OR UPPER(cntry) IN ('US', 'USA', 'DE')
 
-UNION ALL
+    UNION ALL
 
-SELECT
-    'Test 5: Audit column (_loaded_at not NULL)'       AS test,
-    COUNT(*)                                           AS failed_count
-FROM silver.erp_loc_a101
-WHERE _loaded_at IS NULL
+    SELECT
+        'Test 5: Audit column (_loaded_at not NULL)'       AS test,
+        COUNT(*)                                           AS failing_rows
+    FROM silver.erp_loc_a101
+    WHERE _loaded_at IS NULL
 
-ORDER BY test;
+    ORDER BY test
+     ) AS checks;
