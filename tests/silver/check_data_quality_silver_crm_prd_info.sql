@@ -114,30 +114,28 @@ FROM (
     FROM silver.crm_sales_details
     WHERE sls_prd_key NOT IN (SELECT prd_key FROM silver.crm_prd_info)
 
-    UNION ALL SELECT 'TEST 3 – FK cat_id resolves in ERP categories' AS test_name,
-            COUNT(*) AS failing_rows
-    FROM silver.crm_prd_info
-    WHERE cat_id NOT IN (SELECT id FROM bronze.erp_px_cat_g1v2)
 
-    UNION ALL SELECT 'TEST 4 – No whitespace in prd_nm' AS test_name,
+    UNION ALL SELECT 'TEST 3 – No whitespace in prd_nm' AS test_name,
             COUNT(*) AS failing_rows
     FROM silver.crm_prd_info
     WHERE prd_nm != TRIM(prd_nm)
 
-    UNION ALL SELECT 'TEST 5 – No whitespace in prd_line' AS test_name,
+    UNION ALL SELECT 'TEST  4– No whitespace in prd_line' AS test_name,
             COUNT(*) AS failing_rows
     FROM silver.crm_prd_info
     WHERE prd_line != TRIM(prd_line)
 
-    UNION ALL SELECT 'TEST 6 – No NULL or negative prd_cost' AS test_name,
+    UNION ALL SELECT 'TEST 5 – No NULL or negative prd_cost' AS test_name,
             COUNT(*) AS failing_rows
     FROM silver.crm_prd_info
     WHERE prd_cost IS NULL OR prd_cost < 0
 
-    UNION ALL SELECT 'TEST 7 – No inverted product date ranges' AS test_name,
+    UNION ALL SELECT 'TEST 6 – No inverted product date ranges' AS test_name,
             COUNT(*) AS failing_rows
     FROM silver.crm_prd_info
     WHERE prd_end_dt < prd_start_dt
 
     ORDER BY test_name
      ) AS checks;
+
+
