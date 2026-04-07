@@ -106,7 +106,8 @@ WHERE prd_end_dt < prd_start_dt;
 --       Run TEST 1 separately and verify manually.
 -- =============================================================================
 SELECT 'TEST 2 – FK prd_key resolves in sales'         AS test_name,
-        COUNT(*) AS failing_rows
+        COUNT(*) AS failing_rows,
+        CASE WHEN failing_rows= 0 THEN '✅ PASS' ELSE '❌ FAIL' END AS status
 FROM silver.crm_sales_details
 WHERE sls_prd_key NOT IN (SELECT prd_key FROM silver.crm_prd_info)
 
