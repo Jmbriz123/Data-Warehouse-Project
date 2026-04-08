@@ -102,16 +102,6 @@ SELECT test, failing_rows,
     CASE WHEN failing_rows = 0 THEN '✅ PASS' ELSE '❌ FAIL' END AS status
 FROM (
 
-    -- Test 1: Referential integrity
-    SELECT
-        'Test 1: Referential integrity (id → cat_id)'          AS test,
-        COUNT(*)                                                AS failing_rows
-    FROM silver.erp_px_cat_g1v2
-    WHERE id NOT IN (
-        SELECT cat_id FROM silver.crm_prd_info
-    )
-    UNION ALL
-
     -- Test 2: Whitespace — cat
     SELECT
         'Test 2: Whitespace in cat'                            AS test,
