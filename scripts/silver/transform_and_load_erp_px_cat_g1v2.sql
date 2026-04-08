@@ -11,11 +11,7 @@ SELECT
     cat,
     subcat,
     maintenance
-FROM bronze.erp_px_cat_g1v2
-WHERE id IN(
-    SELECT cat_id
-    FROM silver.crm_prd_info
-    );
+FROM bronze.erp_px_cat_g1v2;
 COMMIT;
 
 
