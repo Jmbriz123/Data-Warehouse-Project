@@ -36,7 +36,7 @@ BEGIN
         p_source_dir || '/cust_az12.csv');
 
     GET DIAGNOSTICS v_rows = ROW_COUNT;
-    UPDATE bronze.erp_cust_az12 SET _loaded_at = NOW();
+    UPDATE bronze.erp_cust_az12 SET _bronze_loaded_at = NOW();
     RAISE NOTICE '>> [1/3] Loaded % rows into bronze.erp_cust_az12 | Duration: % seconds',
         v_rows, EXTRACT(EPOCH FROM (NOW() - v_table_start))::INT;
 
@@ -56,7 +56,7 @@ BEGIN
     );
 
     GET DIAGNOSTICS v_rows = ROW_COUNT;
-    UPDATE bronze.erp_loc_a101 SET _loaded_at = NOW();
+    UPDATE bronze.erp_loc_a101 SET _bronze_loaded_at = NOW();
     RAISE NOTICE '>> [2/3] Loaded % rows into bronze.erp_loc_a101 | Duration: % seconds',
         v_rows, EXTRACT(EPOCH FROM (NOW() - v_table_start))::INT;
 
@@ -76,7 +76,7 @@ BEGIN
     );
 
     GET DIAGNOSTICS v_rows = ROW_COUNT;
-    UPDATE bronze.erp_px_cat_g1v2 SET _loaded_at = NOW();
+    UPDATE bronze.erp_px_cat_g1v2 SET _bronze_loaded_at = NOW();
     RAISE NOTICE '>> [3/3] Loaded % rows into bronze.erp_px_cat_g1v2 | Duration: % seconds',
         v_rows, EXTRACT(EPOCH FROM (NOW() - v_table_start))::INT;
 

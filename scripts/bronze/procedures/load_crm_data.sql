@@ -38,7 +38,7 @@ BEGIN
     );
 
     GET DIAGNOSTICS v_rows = ROW_COUNT;
-    UPDATE bronze.crm_cust_info SET _loaded_at = NOW();
+    UPDATE bronze.crm_cust_info SET _bronze_loaded_at = NOW();
     RAISE NOTICE '>> [1/3] Loaded % rows into bronze.crm_cust_info | Duration: % seconds',
         v_rows, EXTRACT(EPOCH FROM (NOW() - v_table_start))::INT;
 
@@ -59,7 +59,7 @@ BEGIN
     );
 
     GET DIAGNOSTICS v_rows = ROW_COUNT;
-    UPDATE bronze.crm_prd_info SET _loaded_at = NOW();
+    UPDATE bronze.crm_prd_info SET _bronze_loaded_at = NOW();
     RAISE NOTICE '>> [2/3] Loaded % rows into bronze.crm_prd_info | Duration: % seconds',
         v_rows, EXTRACT(EPOCH FROM (NOW() - v_table_start))::INT;
 
@@ -80,7 +80,7 @@ BEGIN
     );
 
     GET DIAGNOSTICS v_rows = ROW_COUNT;
-    UPDATE bronze.crm_sales_details SET _loaded_at = NOW();
+    UPDATE bronze.crm_sales_details SET _bronze_loaded_at = NOW();
     RAISE NOTICE '>> [3/3] Loaded % rows into bronze.crm_sales_details | Duration: % seconds',
         v_rows, EXTRACT(EPOCH FROM (NOW() - v_table_start))::INT;
 
