@@ -9,8 +9,10 @@ CREATE TABLE IF NOT EXISTS silver.erp_cust_az12(
     bdate DATE,
     gen TEXT,
 
+
     -- Audit metadata (not from source CSV, added by pipeline)
-    _loaded_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    _bronze_loaded_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    _silver_loaded_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 
@@ -19,7 +21,8 @@ CREATE TABLE IF NOT EXISTS silver.erp_loc_a101(
     cntry TEXT,
 
     -- Audit metadata (not from source CSV, added by pipeline)
-    _loaded_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    _bronze_loaded_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    _silver_loaded_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS silver.erp_px_cat_g1v2(
@@ -28,6 +31,8 @@ CREATE TABLE IF NOT EXISTS silver.erp_px_cat_g1v2(
     subcat TEXT,
     maintenance TEXT,
 
+
     -- Audit metadata (not from source CSV, added by pipeline)
-    _loaded_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    _bronze_loaded_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    _silver_loaded_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
