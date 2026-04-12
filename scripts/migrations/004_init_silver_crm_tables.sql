@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS silver.crm_prd_info(
     -- Audit metadata (not from source CSV, added by pipeline)
     _bronze_loaded_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     _silver_loaded_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    _source_system TEXT
+    _source_system TEXT DEFAULT 'CRM'
 );
 
 
@@ -51,5 +51,5 @@ CREATE TABLE IF NOT EXISTS silver.crm_sales_details(
     -- Audit metadata (not from source CSV, added by pipeline)
     _bronze_loaded_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     _silver_loaded_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    _source_system TEXT
+    _source_system TEXT DEFAULT 'CRM'
 );
