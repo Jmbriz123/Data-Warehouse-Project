@@ -81,7 +81,7 @@ WHERE bdate < '1900-01-01';
 -- =============================================================================
 SELECT *
 FROM silver.erp_cust_az12
-WHERE gen NOT IN ('Male', 'Female', 'n/a')
+WHERE gen NOT IN ('Male', 'Female', 'Unknown')
    OR gen IS NULL;
 
 
@@ -133,7 +133,7 @@ FROM (
     UNION ALL SELECT 'TEST 6 – Gender values standardized',
            COUNT(*)
     FROM silver.erp_cust_az12
-    WHERE gen NOT IN ('Male', 'Female', 'n/a') OR gen IS NULL
+    WHERE gen NOT IN ('Male', 'Female', 'Unknown') OR gen IS NULL
 
     UNION ALL SELECT 'TEST 7 – No null or empty cid',
            COUNT(*)
