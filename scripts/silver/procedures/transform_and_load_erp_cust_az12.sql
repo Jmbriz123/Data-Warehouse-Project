@@ -18,7 +18,7 @@ BEGIN
 
     TRUNCATE TABLE silver.erp_cust_az12;
 
-    INSERT INTO silver.erp_cust_az12 (cid, bdate, gen)
+    INSERT INTO silver.erp_cust_az12 (cid, bdate, gen, _source_system)
     SELECT
         (CASE
             WHEN cid LIKE 'NAS%' THEN SUBSTRING(cid, 4, LENGTH(cid))
@@ -29,7 +29,8 @@ BEGIN
         (CASE
             WHEN UPPER(TRIM(gen)) IN ('F', 'FEMALE') THEN 'Female'
             WHEN UPPER(TRIM(gen)) IN ('M', 'MALE')   THEN 'Male'
-            ELSE 'Unknown' END) AS gen
+            ELSE 'Unknown' END) AS gen,
+        'ERP' AS _source_system
     FROM bronze.erp_cust_az12;
 
     GET DIAGNOSTICS v_rows_inserted = ROW_COUNT;
