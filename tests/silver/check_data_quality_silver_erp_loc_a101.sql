@@ -47,12 +47,12 @@ ORDER BY cntry;
 
 
 -- -----------------------------------------------------------------------------
--- Test 5. Audit metadata — _loaded_at must be populated on every row
+-- Test 5. Audit metadata — _silver_loaded_at must be populated on every row
 --         Expectation: No Results
 -- -----------------------------------------------------------------------------
 SELECT *
 FROM silver.erp_loc_a101
-WHERE _loaded_at IS NULL;
+WHERE _silver_loaded_at IS NULL;
 
 
 -- =============================================================================
@@ -92,7 +92,7 @@ FROM (
         'Test 5: Audit column (_loaded_at not NULL)'       AS test,
         COUNT(*)                                           AS failing_rows
     FROM silver.erp_loc_a101
-    WHERE _loaded_at IS NULL
+    WHERE _silver_loaded_at IS NULL
 
     ORDER BY test
      ) AS checks;
