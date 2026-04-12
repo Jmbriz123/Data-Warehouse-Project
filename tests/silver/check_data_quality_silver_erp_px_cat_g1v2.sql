@@ -91,7 +91,7 @@ WHERE maintenance NOT IN ('Yes', 'No')
 -- -----------------------------------------------------------------------------
 SELECT *
 FROM silver.erp_px_cat_g1v2
-WHERE _loaded_at IS NULL;
+WHERE _silver_loaded_at IS NULL;
 
 
 -- =============================================================================
@@ -160,10 +160,10 @@ FROM (
 
     -- Test 8: Audit column
     SELECT
-        'Test 8: Audit column (_loaded_at not NULL)'           AS test,
+        'Test 8: Audit column (_silver_loaded_at not NULL)'           AS test,
         COUNT(*)                                               AS failing_rows
     FROM silver.erp_px_cat_g1v2
-    WHERE _loaded_at IS NULL
+    WHERE _silver_loaded_at IS NULL
 
 ) checks
 
