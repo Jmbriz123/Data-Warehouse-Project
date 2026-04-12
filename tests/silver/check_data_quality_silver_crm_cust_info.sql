@@ -37,7 +37,7 @@ FROM (
     SELECT *,
         ROW_NUMBER() OVER (
             PARTITION BY cst_id
-            ORDER BY cst_create_date DESC, _loaded_at DESC   -- tie-breaker
+            ORDER BY cst_create_date DESC, _bronze_loaded_at DESC   -- tie-breaker
         ) AS version_rank
     FROM silver.crm_cust_info
 ) ranked
@@ -113,7 +113,7 @@ FROM (
     FROM (
         SELECT ROW_NUMBER() OVER (
                    PARTITION BY cst_id
-                   ORDER BY cst_create_date DESC, _loaded_at DESC
+                   ORDER BY cst_create_date DESC, _bronze_loaded_at DESC
                ) AS version_rank
         FROM silver.crm_cust_info
     ) ranked
@@ -139,7 +139,7 @@ FROM (
         '5a  | Unexpected cst_gndr values'              AS check_name,
         COUNT(*)                                        AS failing_rows
     FROM silver.crm_cust_info
-    WHERE cst_gndr NOT IN ('Male', 'Female', 'n/a')
+    WHERE cst_gndr NOT IN ('Male', 'Female', 'Unknown')
        OR cst_gndr IS NULL
 
     UNION ALL
@@ -149,7 +149,7 @@ FROM (
         '5b  | Unexpected cst_marital_status values'    AS check_name,
         COUNT(*)                                        AS failing_rows
     FROM silver.crm_cust_info
-    WHERE cst_marital_status NOT IN ('Married', 'Single', 'n/a')
+    WHERE cst_marital_status NOT IN ('Married', 'Single', 'Unknown')
        OR cst_marital_status IS NULL
 
 ) checks
