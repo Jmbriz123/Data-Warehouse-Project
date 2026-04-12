@@ -8,12 +8,7 @@ orchestration frameworks, just disciplined SQL engineering.
 ---
 
 ## 🏗️ Architecture Overview
-
-```
-CRM Source ──┐                                          
-             ├──▶ Bronze (Raw) ──▶ Silver (Clean) ──▶ Gold (Curated)
-ERP Source ──┘                                          
-```
+<img width="980" height="607" alt="image" src="https://github.com/user-attachments/assets/7a778ab5-cc84-42b2-a6b0-51c4fdd9a012" />
 
 | Layer | Status | Purpose |
 | :--- | :--- | :--- |
