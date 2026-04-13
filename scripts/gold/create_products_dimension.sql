@@ -24,6 +24,6 @@ SELECT
 FROM silver.crm_prd_info as pn
         LEFT JOIN silver.erp_px_cat_g1v2 AS pc
                   ON pn.cat_id = pc.id
-WHERE prd_end_dt IS NULL
+WHERE prd_end_dt IS NULL;
 --filter to only keep the current data, because the product table contains historical data
 COMMIT;
