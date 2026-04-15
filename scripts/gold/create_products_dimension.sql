@@ -20,7 +20,10 @@ SELECT
       pn.prd_cost AS cost,
       pn.prd_line AS product_line,
       pn.prd_start_dt AS start_date,
-      pc.maintenance
+      pc.maintenance,
+     -- Audit Columns
+    CURRENT_TIMESTAMP AS _gold_processed_at,
+    'CRM + ERP'             AS _source_system
 FROM silver.crm_prd_info as pn
         LEFT JOIN silver.erp_px_cat_g1v2 AS pc
                   ON pn.cat_id = pc.id
