@@ -14,7 +14,7 @@ orchestration frameworks, just disciplined SQL engineering.
 | :--- | :--- | :--- |
 | 🟢 **Bronze** | COMPLETED | 1:1 copies of source data. No transformations. Audit metadata only. |
 | 🟡 **Silver** | COMPLETED | Source of Truth. Deduplicated, typed, validated, and business-rule compliant. |
-| ⚪ **Gold** | PLANNED | Analytics-ready views and aggregations for reporting and dashboards. |
+| 🟠 **Gold** | COMPLETED | Analytics-ready Star Schema views for reporting and dashboards. |
 
 ---
 
@@ -45,7 +45,12 @@ Data-Warehouse/
 │   │           ├── explore_erp_loc_a101.sql
 │   │           └── explore_erp_px_cat_g1v2.sql
 │   │
-│   ├── gold/                          # (Planned) Gold layer scripts
+│   ├── gold/
+│   │   ├── views/
+│   │   │   ├── dim_customers.sql      # Customer dimension view
+│   │   │   ├── dim_products.sql       # Product dimension view
+│   │   │   └── fact_sales.sql         # Sales fact view
+│   │   └── run_gold_load.sql          # Runner: creates all Gold views in order
 │   │
 │   ├── migrations/
 │   │   ├── 001_init_medallion_schemas.sql
@@ -128,6 +133,18 @@ psql -U postgres -d dwh_project -f tests/silver/check_data_quality_silver_erp_px
 Each script ends with a **summary scoreboard** — a single aggregated pass/fail count across
 all checks. A fully clean Silver layer returns zero failures.
 
+### 5. Gold Layer Build
+
+Once the Silver layer passes all quality checks, build the Gold layer views:
+
+```bash
+psql -U postgres -d dwh_project -f scripts/gold/run_gold_load.sql
+```
+
+This creates the two dimension views and the fact view in the correct dependency order.
+Gold views are non-materialized by default — they query Silver on every execution, ensuring
+the analytical layer always reflects the latest Silver data without a separate refresh step.
+
 ---
 
 ## 📋 Data Dictionary
@@ -147,6 +164,14 @@ all checks. A fully clean Silver layer returns zero failures.
 | `bronze.erp_cust_az12` | `silver.erp_cust_az12` | `CUST_AZ12.csv` | ERP customer demographics — birthdate and gender. |
 | `bronze.erp_loc_a101` | `silver.erp_loc_a101` | `LOC_A101.csv` | Customer location and country data. |
 | `bronze.erp_px_cat_g1v2` | `silver.erp_px_cat_g1v2` | `PX_CAT_G1V2.csv` | Global product category hierarchy. |
+
+### Gold Layer: Star Schema
+
+| Gold View | Type | Description |
+| :--- | :--- | :--- |
+| `gold.dim_customers` | Dimension | Master customer records, Type 1 SCD. 1 row per customer. |
+| `gold.dim_products` | Dimension | Product catalog with category hierarchy. 1 row per product. |
+| `gold.fact_sales` | Fact | Atomic sales transactions. 1 row per line item per order. |
 
 ---
 
@@ -354,6 +379,110 @@ exactly as it was before the run started. This is the atomicity guarantee in pra
 
 ---
 
+## 🥇 Gold Layer — Star Schema
+
+The Gold layer is the consumption-ready tier of the warehouse. It is modeled as a **Star Schema**
+to provide a performant and intuitive experience for end-users and BI tools. All Gold objects
+are implemented as **views** over the Silver layer, ensuring they always reflect the latest
+Silver data without a separate refresh step.
+
+### Model Overview
+
+```
+gold.fact_sales
+    ├── product_key  ──▶  gold.dim_products
+    └── customer_key ──▶  gold.dim_customers
+```
+
+### `gold.dim_customers` — Customer Dimension
+
+**Grain:** 1 row per unique customer.
+**SCD Type:** Type 1 (overwrite). Always reflects the most current customer record.
+
+Integrates `silver.crm_cust_info` (profiles), `silver.erp_cust_az12` (demographics), and
+`silver.erp_loc_a101` (location). The cross-system join is made possible by the key
+normalisation applied in the Silver layer.
+
+| Column | Type | Description |
+| :--- | :--- | :--- |
+| `customer_key` | BIGINT | Generated surrogate key (PK). |
+| `customer_id` | INTEGER | Natural key from source system (UK). |
+| `customer_number` | TEXT | Business-facing customer reference. |
+| `first_name` | TEXT | Customer first name. |
+| `last_name` | TEXT | Customer last name. |
+| `country` | TEXT | Normalised country name. |
+| `marital_status` | TEXT | `{Married, Single, etc.}` |
+| `gender` | TEXT | `{Male, Female, N/A}` |
+| `birthdate` | DATE | Format: `YYYY-MM-DD`. |
+| `created_date` | DATE | Initial registration date. |
+| `_gold_processed_at` | TIMESTAMPTZ | Metadata: record update time. |
+| `_source_system` | TEXT | Metadata: originating source. |
+
+---
+
+### `gold.dim_products` — Product Dimension
+
+**Grain:** 1 row per unique, currently active product.
+
+Integrates `silver.crm_prd_info` (product master) and `silver.erp_px_cat_g1v2` (category
+hierarchy). The join is enabled by the composite key decomposition and delimiter normalisation
+performed in the Silver layer. Only currently active products are surfaced (where `prd_end_dt IS NULL`).
+
+| Column | Type | Description |
+| :--- | :--- | :--- |
+| `product_key` | BIGINT | Generated surrogate key (PK). |
+| `product_id` | INTEGER | Source system identifier (UK). |
+| `product_number` | TEXT | SKU / model number. |
+| `product_name` | TEXT | Full product description. |
+| `category_id` | TEXT | Product category code. |
+| `category` | TEXT | High-level group (e.g., `Bikes`). |
+| `subcategory` | TEXT | Detailed group (e.g., `Road Bikes`). |
+| `maintenance` | BOOLEAN | Whether post-sale service is required. |
+| `cost` | INTEGER | Base manufacturing/purchase cost. |
+| `product_line` | TEXT | Brand/series classification. |
+| `start_date` | DATE | Catalog entry date. |
+| `_gold_processed_at` | TIMESTAMPTZ | Metadata: record update time. |
+| `_source_system` | TEXT | Metadata: originating source. |
+
+---
+
+### `gold.fact_sales` — Sales Fact Table
+
+**Grain:** 1 row per line item per order.
+
+Sources from `silver.crm_sales_details`, joined to `gold.dim_customers` and `gold.dim_products`
+via surrogate keys. The surrogate key join pattern means the fact table is insulated from
+natural key format changes in the source systems.
+
+| Column | Type        | Description |
+| :--- |:------------| :--- |
+| `order_number` | TEXT        | Transaction ID, e.g., `SO12345` (UK). |
+| `product_key` | BIGINT      | FK → `gold.dim_products`. |
+| `customer_key` | BIGINT      | FK → `gold.dim_customers`. |
+| `order_date` | DATE        | Primary event date. |
+| `shipping_date` | DATE        | Date of dispatch. |
+| `due_date` | DATE        | Expected payment date. |
+| `sales_amount` | INTEGER     | Net revenue for this line item. |
+| `quantity` | INTEGER     | Unit count sold. |
+| `price` | INTEGER     | Unit price at transaction time. |
+| `_gold_processed_at` | TIMESTAMPTZ | Metadata: processing timestamp. |
+| `_source_system` | TEXT        | Metadata: originating source. |
+
+---
+
+### Gold Layer Design Standards
+
+| Standard | Implementation | Why |
+| :--- | :--- | :--- |
+| **Star Schema** | 1 fact table, 2 dimension tables | Optimised for analytical queries and BI tool compatibility |
+| **Surrogate Keys** | `ROW_NUMBER()` generated `BIGINT` PKs | Decouples Gold from source system key formats and changes |
+| **Views over Silver** | No physical tables in Gold | Always current; no separate refresh job required |
+| **UTC Timestamps** | All timestamps use `TIMESTAMPTZ` | Consistent temporal tracking across time zones |
+| **Active products only** | `WHERE prd_end_dt IS NULL` in `dim_products` | Only currently valid catalog entries are exposed to analysts |
+| **Conformed dimensions** | Cross-system joins resolved in Silver | Gold views are simple and clean — complexity stays in Silver |
+
+---
+
 ## 🧪 Test-Driven Development (TDD) for Data
 
 This project follows a **Test-Driven Development** discipline applied to SQL. Before writing
@@ -410,6 +539,8 @@ reload — so the Silver layer's reliability is not assumed, it is verified.
 | **Schema Isolation** | Each layer is independently queryable and auditable |
 | **Zero-Footprint Data** | Datasets managed locally — only SQL logic and documentation are versioned |
 | **Least Privilege** | ETL service role granted only `EXECUTE` on procedures, not direct table access |
+| **Star Schema** | Gold layer modeled for analytical performance and BI tool compatibility |
+| **Surrogate Keys** | Gold dimensions use generated keys, decoupling analytics from source system changes |
 
 ---
 
