@@ -387,6 +387,7 @@ are implemented as **views** over the Silver layer, ensuring they always reflect
 Silver data without a separate refresh step.
 
 ### Model Overview
+<img width="707" height="714" alt="image" src="https://github.com/user-attachments/assets/7485a023-a064-4334-9cf0-3e2eb780b9d1" />
 
 ```
 gold.fact_sales
