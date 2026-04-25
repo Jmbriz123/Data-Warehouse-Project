@@ -547,7 +547,8 @@ result for instant analyst access. They are refreshed each batch run via
 so analysts continue querying uninterrupted during the refresh window.
 
 ### Model Overview
-<img width="707" height="714" alt="image" src="https://github.com/user-attachments/assets/7485a023-a064-4334-9cf0-3e2eb780b9d1" />
+<img width="657" height="688" alt="image" src="https://github.com/user-attachments/assets/5b1191bf-d105-4722-bd3c-e3acf2cb6045" />
+
 
 ```
 gold.fact_sales
