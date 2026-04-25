@@ -11,6 +11,7 @@ Description:
 BEGIN;
 
 -- 1. Use CASCADE to ensure clean recreation if other views depend on this
+
 DROP MATERIALIZED VIEW IF EXISTS gold.dim_customers CASCADE;
 
 -- 2. Create the View with explicit column aliases and business-friendly names
