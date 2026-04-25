@@ -14,7 +14,7 @@ orchestration frameworks, just disciplined SQL engineering.
 | :--- | :--- | :--- |
 | 🟢 **Bronze** | COMPLETED | 1:1 copies of source data. No transformations. Audit metadata only. |
 | 🟡 **Silver** | COMPLETED | Source of Truth. Deduplicated, typed, validated, and business-rule compliant. |
-| 🟠 **Gold** | COMPLETED | Analytics-ready Star Schema views for reporting and dashboards. |
+| 🟠 **Gold** | COMPLETED | Analytics-ready Star Schema materialized views for reporting and dashboards. |
 
 ---
 
@@ -47,10 +47,11 @@ Data-Warehouse/
 │   │
 │   ├── gold/
 │   │   ├── views/
-│   │   │   ├── dim_customers.sql      # Customer dimension view
-│   │   │   ├── dim_products.sql       # Product dimension view
-│   │   │   └── fact_sales.sql         # Sales fact view
-│   │   └── run_gold_load.sql          # Runner: creates all Gold views in order
+│   │   │   ├── dim_customers.sql      # Customer dimension materialized view
+│   │   │   ├── dim_products.sql       # Product dimension materialized view
+│   │   │   └── fact_sales.sql         # Sales fact materialized view
+│   │   ├── gold_indexes.sql           # Gold layer index definitions (run once on setup)
+│   │   └── run_gold_load.sql          # Runner: refreshes all Gold materialized views in order
 │   │
 │   ├── migrations/
 │   │   ├── 001_init_medallion_schemas.sql
@@ -69,7 +70,7 @@ Data-Warehouse/
 │       │   ├── transform_and_load_erp_cust_az12.sql
 │       │   ├── transform_and_load_erp_loc_a101.sql
 │       │   └── transform_and_load_erp_px_cat_g1v2.sql
-│       └── run_silver_load.sql        # Runner: calls all Silver procedures in order
+│       └── run_silver_load.sql        # Runner: drop indexes → load → recreate indexes
 │
 ├── tests/
 │   └── silver/
@@ -115,7 +116,9 @@ Run the initialization scripts in `scripts/migrations/` in order:
    ```bash
    psql -U postgres -d dwh_project -f scripts/silver/run_silver_load.sql
    ```
-   This calls all six transformation procedures in dependency order — dimensions before facts, CRM before ERP.
+   This drops all Silver indexes, calls all six transformation procedures in dependency order
+   (dimensions before facts, CRM before ERP), then recreates indexes optimized for the Gold
+   build queries.
 
 ### 4. Data Quality Checks (Silver Layer)
 
@@ -133,17 +136,172 @@ psql -U postgres -d dwh_project -f tests/silver/check_data_quality_silver_erp_px
 Each script ends with a **summary scoreboard** — a single aggregated pass/fail count across
 all checks. A fully clean Silver layer returns zero failures.
 
-### 5. Gold Layer Build
+### 5. Gold Layer Setup (First Time Only)
 
-Once the Silver layer passes all quality checks, build the Gold layer views:
+On first deployment, create the materialized views and initialize the Gold indexes:
+
+```bash
+# Create the materialized views
+psql -U postgres -d dwh_project -f scripts/gold/views/dim_products.sql
+psql -U postgres -d dwh_project -f scripts/gold/views/dim_customers.sql
+psql -U postgres -d dwh_project -f scripts/gold/views/fact_sales.sql
+
+# Create Gold indexes — run ONCE, indexes persist across refreshes
+psql -U postgres -d dwh_project -f scripts/gold/gold_indexes.sql
+```
+
+### 6. Gold Layer Refresh (Every Batch Run)
+
+Once Silver passes all quality checks, refresh the Gold materialized views:
 
 ```bash
 psql -U postgres -d dwh_project -f scripts/gold/run_gold_load.sql
 ```
 
-This creates the two dimension views and the fact view in the correct dependency order.
-Gold views are non-materialized by default — they query Silver on every execution, ensuring
-the analytical layer always reflects the latest Silver data without a separate refresh step.
+This refreshes dimensions first, then the fact table, in strict dependency order.
+`REFRESH MATERIALIZED VIEW CONCURRENTLY` is used — analysts can continue querying
+Gold without interruption during the refresh window.
+
+---
+
+## ⚡ Performance Optimization — Indexing Strategy
+
+This project implements a **scale-aware indexing strategy** across both the Silver and Gold
+layers. The strategy is designed around the access patterns of each layer, not just current
+data volume. At the current dataset size the gains are modest — but the architecture ensures
+the pipeline degrades gracefully as data grows into the millions of rows.
+
+---
+
+### Silver Layer — Indexes for ETL Performance
+
+Silver indexes exist for one purpose: **accelerating the Gold build queries**. They are not
+for analyst access. Every indexed column in Silver corresponds directly to a `JOIN` or `WHERE`
+clause in a Gold materialized view build script.
+
+#### Why Drop and Recreate on Every Batch Run
+
+The Silver pipeline follows a strict **drop → load → recreate** pattern:
+
+```
+STEP 1: DROP all Silver indexes
+STEP 2: CALL transform procedures (TRUNCATE + INSERT inside each)
+STEP 3: CREATE all Silver indexes
+```
+
+This is the correct pattern for batch pipelines for two reasons:
+
+**Reason 1 — Bulk insert performance.** Maintaining a B-tree index during row-by-row
+insertion requires a sorted traversal for every single row — finding the correct position
+in the tree, checking for page capacity, and splitting pages when they fill. At scale this
+becomes the dominant cost of the load. Dropping indexes before the bulk insert eliminates
+this overhead entirely.
+
+**Reason 2 — Index build quality.** `CREATE INDEX` after the load scans the table once,
+sorts all keys in memory in a single pass, and writes the B-tree sequentially from left to
+right. This produces a perfectly balanced tree with no fragmentation — consistently faster
+than the incrementally built tree that results from maintaining an index during insertion.
+
+The `TRUNCATE` inside each procedure resets the table data. The drop-recreate cycle ensures
+the index is also rebuilt cleanly on every run.
+
+#### Silver Index Coverage
+
+| Table | Indexed Column | Justifies By |
+| :--- | :--- | :--- |
+| `silver.crm_prd_info` | `cat_id` | JOIN to `erp_px_cat_g1v2` in `dim_products` build |
+| `silver.crm_prd_info` | `prd_key` | JOIN to `crm_sales_details` in `fact_sales` build |
+| `silver.crm_prd_info` | `prd_end_dt` | `WHERE prd_end_dt IS NULL` filter in `dim_products` build (SCD Type 2) |
+| `silver.erp_px_cat_g1v2` | `id` | JOIN target from `crm_prd_info.cat_id` |
+| `silver.crm_cust_info` | `cst_key` | JOIN to `erp_cust_az12` and `erp_loc_a101` in `dim_customers` build |
+| `silver.crm_cust_info` | `cst_id` | JOIN to `crm_sales_details` in `fact_sales` build |
+| `silver.erp_cust_az12` | `cid` | JOIN target from `crm_cust_info.cst_key` |
+| `silver.erp_loc_a101` | `cid` | JOIN target from `crm_cust_info.cst_key` |
+| `silver.crm_sales_details` | `sls_prd_key` | JOIN to `crm_prd_info` in `fact_sales` build |
+| `silver.crm_sales_details` | `sls_cust_id` | JOIN to `crm_cust_info` in `fact_sales` build |
+| `silver.crm_sales_details` | `sls_order_dt` | Incremental load date filter (defensive, for future use) |
+
+> **Design principle:** Silver indexes are specified by reading the Gold build scripts — not
+> guessed. Every indexed column maps to an explicit `JOIN ON` or `WHERE` clause. No index
+> exists without a documented justification.
+
+---
+
+### Gold Layer — Indexes for Analyst Query Performance
+
+Gold indexes serve a different master: **the analysts and BI tools querying the star schema**.
+Unlike Silver, Gold indexes are created once on first setup and survive every `REFRESH` —
+PostgreSQL rebuilds them automatically after each materialized view refresh.
+
+#### Why Gold Indexes Are Never Dropped
+
+Gold materialized views are queried continuously by analysts. Dropping indexes would make
+the views unavailable for efficient querying at any point — defeating the purpose of the
+serving layer. `REFRESH MATERIALIZED VIEW CONCURRENTLY` (used in `run_gold_load.sql`)
+requires unique indexes to exist and handles index maintenance internally. No manual
+drop-recreate cycle is needed or appropriate here.
+
+#### Unique Indexes — Required for `REFRESH CONCURRENTLY`
+
+`REFRESH MATERIALIZED VIEW CONCURRENTLY` requires at least one unique index per materialized
+view. Without it, PostgreSQL cannot perform a non-blocking refresh and will error. These
+indexes also enforce the grain of each object:
+
+| Materialized View | Unique Index | Grain Enforced |
+| :--- | :--- | :--- |
+| `gold.dim_products` | `product_key` | 1 row per active product |
+| `gold.dim_customers` | `customer_key` | 1 row per customer |
+| `gold.fact_sales` | `(customer_key, product_key, order_number)` | 1 row per line item per order |
+
+The fact table uses a **composite unique index** across all three columns because a customer
+can purchase the same product multiple times across different orders — neither FK alone nor
+`order_number` alone guarantees uniqueness at the line-item grain.
+
+#### Attribute Indexes — Analyst Drill-Down Performance
+
+These indexes target the columns analysts filter, group, and drill down on in BI tools and
+ad-hoc queries. They are chosen based on the known access patterns of a star schema:
+
+| Materialized View | Indexed Column | Access Pattern |
+| :--- | :--- | :--- |
+| `gold.dim_products` | `category` | GROUP BY / WHERE drill-down |
+| `gold.dim_products` | `subcategory` | GROUP BY / WHERE drill-down |
+| `gold.dim_products` | `product_line` | GROUP BY / WHERE filter |
+| `gold.dim_customers` | `country` | WHERE / GROUP BY geographic filter |
+| `gold.dim_customers` | `gender` | WHERE demographic filter |
+| `gold.dim_customers` | `marital_status` | WHERE demographic filter |
+| `gold.fact_sales` | `product_key` | FK JOIN from fact to dim_products |
+| `gold.fact_sales` | `customer_key` | FK JOIN from fact to dim_customers |
+| `gold.fact_sales` | `order_date` | WHERE date range filter |
+| `gold.fact_sales` | `shipping_date` | WHERE date range filter |
+
+---
+
+### Scalability Rationale
+
+The current dataset sits below the threshold where indexes produce measurable wall-clock
+improvements — PostgreSQL's sequential scan is efficient at small volumes. The indexing
+strategy is implemented now because:
+
+- **Access patterns are certain.** Star schema query patterns (FK joins, date range filters,
+  category drill-downs) are well-understood and will not change as data grows. Indexes placed
+  today reflect patterns that will be active at any volume.
+- **Retrofitting is disruptive.** Adding indexes to a live multi-million-row Gold layer
+  requires `CREATE INDEX CONCURRENTLY` with significant I/O overhead and careful timing.
+  Placing them now costs nothing at small volume and eliminates the risk of degraded analyst
+  performance during a future migration.
+- **The architecture is correct regardless of volume.** A pipeline that handles 60k rows
+  with the same structural discipline as one handling 60M rows is a stronger demonstration
+  of engineering judgment than one that optimises reactively.
+
+At production scale (10M+ rows on the fact table), the expected impact is:
+
+| Query Pattern | Without Indexes | With Indexes | Estimated Improvement |
+| :--- | :--- | :--- | :--- |
+| Fact-to-dimension JOIN | Full Seq Scan | Index Scan on FK | ~95% reduction |
+| Date range filter on fact | Full Seq Scan | Index Scan on order_date | ~95% reduction |
+| Category drill-down | Full Seq Scan on dim | Index Scan on category | ~90% reduction |
+| Silver Gold build (JOIN-heavy) | Seq Scan all silver tables | Index Scan on JOIN keys | ~80–95% reduction |
 
 ---
 
@@ -167,11 +325,11 @@ the analytical layer always reflects the latest Silver data without a separate r
 
 ### Gold Layer: Star Schema
 
-| Gold View | Type | Description |
+| Gold Object | Type | Description |
 | :--- | :--- | :--- |
-| `gold.dim_customers` | Dimension | Master customer records, Type 1 SCD. 1 row per customer. |
-| `gold.dim_products` | Dimension | Product catalog with category hierarchy. 1 row per product. |
-| `gold.fact_sales` | Fact | Atomic sales transactions. 1 row per line item per order. |
+| `gold.dim_customers` | Materialized View | Master customer records, Type 1 SCD. 1 row per customer. |
+| `gold.dim_products` | Materialized View | Product catalog with category hierarchy. 1 row per active product. |
+| `gold.fact_sales` | Materialized View | Atomic sales transactions. 1 row per line item per order. |
 
 ---
 
@@ -383,8 +541,10 @@ exactly as it was before the run started. This is the atomicity guarantee in pra
 
 The Gold layer is the consumption-ready tier of the warehouse. It is modeled as a **Star Schema**
 to provide a performant and intuitive experience for end-users and BI tools. All Gold objects
-are implemented as **views** over the Silver layer, ensuring they always reflect the latest
-Silver data without a separate refresh step.
+are implemented as **materialized views** over the Silver layer, physically storing the query
+result for instant analyst access. They are refreshed each batch run via
+`REFRESH MATERIALIZED VIEW CONCURRENTLY` — which rebuilds the data without locking the view,
+so analysts continue querying uninterrupted during the refresh window.
 
 ### Model Overview
 <img width="707" height="714" alt="image" src="https://github.com/user-attachments/assets/7485a023-a064-4334-9cf0-3e2eb780b9d1" />
@@ -477,7 +637,8 @@ natural key format changes in the source systems.
 | :--- | :--- | :--- |
 | **Star Schema** | 1 fact table, 2 dimension tables | Optimised for analytical queries and BI tool compatibility |
 | **Surrogate Keys** | `ROW_NUMBER()` generated `BIGINT` PKs | Decouples Gold from source system key formats and changes |
-| **Views over Silver** | No physical tables in Gold | Always current; no separate refresh job required |
+| **Materialized Views** | Physical storage of query results | Instant analyst access without re-querying Silver on every request |
+| **Non-blocking Refresh** | `REFRESH MATERIALIZED VIEW CONCURRENTLY` | Analysts query uninterrupted during batch refresh window |
 | **UTC Timestamps** | All timestamps use `TIMESTAMPTZ` | Consistent temporal tracking across time zones |
 | **Active products only** | `WHERE prd_end_dt IS NULL` in `dim_products` | Only currently valid catalog entries are exposed to analysts |
 | **Conformed dimensions** | Cross-system joins resolved in Silver | Gold views are simple and clean — complexity stays in Silver |
@@ -542,6 +703,8 @@ reload — so the Silver layer's reliability is not assumed, it is verified.
 | **Least Privilege** | ETL service role granted only `EXECUTE` on procedures, not direct table access |
 | **Star Schema** | Gold layer modeled for analytical performance and BI tool compatibility |
 | **Surrogate Keys** | Gold dimensions use generated keys, decoupling analytics from source system changes |
+| **Scale-Aware Indexing** | Silver and Gold indexes designed around access patterns, not just current volume |
+| **Non-blocking Refresh** | `REFRESH MATERIALIZED VIEW CONCURRENTLY` ensures zero analyst downtime during Gold rebuilds |
 
 ---
 
